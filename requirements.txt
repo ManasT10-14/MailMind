@@ -1,0 +1,9 @@
+google_api_python_client
+google_auth
+google_auth_oauthlib 
+google_auth_httplib2
+langchain
+langgraph
+langchain_google_genai
+langchain_anthropic
+anthropic
