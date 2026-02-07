@@ -1,0 +1,4 @@
+Implement Batching, Implement pre agent layer
+
+created the schema for router agent 
+next is the brain part of it witht the deciding the input to the router agent and the rolling summary part
