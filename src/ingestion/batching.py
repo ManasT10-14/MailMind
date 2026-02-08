@@ -25,21 +25,22 @@ def batch_by_sender_and_intent(
     return {sender: dict(intents) for sender, intents in batch.items()}
     
 
-from collections import defaultdict
-from typing import List, Dict
 
 def batch_by_sender_and_time(
     emails: List[EmailObject],
 ) -> Dict[str, List[EmailObject]]:
 
     batch = defaultdict(list)
+
+
     for email in emails:
         sender = email.metadata.sender
         batch[sender].append(email)
 
-    for sender in batch:
-        batch[sender].sort(
-            key=lambda e: e.metadata.internal_timestamp
+    for sender, sender_emails in batch.items():
+        sender_emails.sort(
+            key=lambda e: int(e.metadata.internal_timestamp),
+            reverse=False 
         )
 
     return dict(batch)

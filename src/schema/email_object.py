@@ -1,6 +1,6 @@
 from pydantic import BaseModel,Field
 from typing import Dict,List,Literal
-
+from datetime import datetime
 
 
 class Metadata(BaseModel):
@@ -9,7 +9,7 @@ class Metadata(BaseModel):
     subject : str
     date: str
     labels: List[str]
-    internal_timestamp: int 
+    internal_timestamp: datetime
 class NormalizedContent(BaseModel):
     text: str
     paragraphs: List[str] 

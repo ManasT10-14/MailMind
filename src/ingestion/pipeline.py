@@ -9,6 +9,7 @@ from src.ingestion.utils import normalize_text
 
 
 def read_emails_in_date_range(start_date: str, end_date: str) -> List[EmailObject]:
+    print("here")
     service = get_gmail_service()
 
     start = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=1)
