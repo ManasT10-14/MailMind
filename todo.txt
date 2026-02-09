@@ -2,3 +2,7 @@ Implement Batching, Implement pre agent layer
 
 created the schema for router agent 
 next is the brain part of it witht the deciding the input to the router agent and the rolling summary part
+
+
+
+pipelines get email function is not updated as in the testing.ipynb the timestamp is datetime.datetime so cure that and then test router agent from testing.ipynb first and there is  a doubt that the send will work or not in the router agent if all good move to the next agents.

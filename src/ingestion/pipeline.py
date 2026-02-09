@@ -26,7 +26,7 @@ def read_emails_in_date_range(start_date: str, end_date: str) -> List[EmailObjec
             userId="me", id=m["id"], format="full"
         ).execute()
         internal_ts = int(msg["internalDate"])
-
+        print(internal_ts)
         headers = {h["name"]: h["value"] for h in msg["payload"]["headers"]}
         labels = msg.get("labelIds", [])
 

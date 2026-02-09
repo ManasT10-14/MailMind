@@ -9,7 +9,7 @@ class Metadata(BaseModel):
     subject : str
     date: str
     labels: List[str]
-    internal_timestamp: datetime
+    internal_timestamp: int
 class NormalizedContent(BaseModel):
     text: str
     paragraphs: List[str] 
