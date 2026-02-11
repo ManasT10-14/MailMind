@@ -6,3 +6,14 @@ next is the brain part of it witht the deciding the input to the router agent an
 
 
 pipelines get email function is not updated as in the testing.ipynb the timestamp is datetime.datetime so cure that and then test router agent from testing.ipynb first and there is  a doubt that the send will work or not in the router agent if all good move to the next agents.
+
+
+
+Now move towards the defer agent
+
+practice the memory part with postgres and then Implement it in the defer agent's create watch from the defer subbgraphs nodes.
+
+=============================================================
+
+
+wiring of defer agent remains, can be done easily

@@ -27,11 +27,3 @@ def build_initial_state(*,
         "defer":False
     }
 
-
-if __name__ == "__main__":
-    emails = read_emails_in_date_range("2026-02-1","2026-02-2")
-    init_state = build_initial_state()
-    init_state["emails"] = emails
-    agent = build_graph()
-    result = agent.invoke(init_state)
-    print(result)

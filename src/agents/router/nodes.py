@@ -21,13 +21,16 @@ def fan_out_batches(state: RouterState):
     
     return [
         
-        Send("process_batch",{"batch_emails":emails,"cache":state["cache"],"llm":state["llm"],"provider":state["provider"]}) for _,emails in batch.items()
+        Send("process_batch",{"batch_emails":emails,"cache":state["cache"],"llm":state["llm"],"provider":state["provider"],"defer":state["defer"],"defer_context":state["defer_context"]}) for _,emails in batch.items()
         
     ]
     
 def process_batch(state: RouterState):
     emails:List[EmailObject] = state["batch_emails"]
     email_context = []
+    if state["defer"]:
+        email_context = state["defer_context"]
+    
     actions = {}
     for email in emails:
         email_prompt  = build_router_agent_prompt(email=email,prev_summary=email_context)

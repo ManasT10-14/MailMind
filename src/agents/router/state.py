@@ -10,3 +10,5 @@ class RouterState(TypedDict):
     cache: Any
     llm: Any
     provider: Any
+    defer: bool
+    defer_context: List[str]

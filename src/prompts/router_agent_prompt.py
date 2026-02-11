@@ -2,7 +2,7 @@ from src.schema.email_object import EmailObject
 from typing import List
 from src.utils.format_datetime_util import format_datetime
 from src.utils.parse_internal_date_util import parse_internal_date
-PROMPT_VERSION_ROUTER_AGENT = "router_agent_v2"
+PROMPT_VERSION_ROUTER_AGENT = "router_agent_v3"
 
 SYSTEM_PROMPT_ROUTER_AGENT = """
 You are the Router Agent in an intelligent email assistant.

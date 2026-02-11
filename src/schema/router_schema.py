@@ -1,6 +1,3 @@
-from pydantic import BaseModel,Field
-from typing import Dict,List,Literal
-
 from pydantic import BaseModel, Field
 from typing import List, Literal
 
@@ -29,6 +26,22 @@ class RouterSchema(BaseModel):
             "automatically. The primary action MUST NOT appear here."
         ),
     )
+    
+    email_summary: str = Field(
+    ...,
+    description=(
+        "A concise, factual semantic summary of ONLY the current email. "
+        "This summary must capture the core event, state change, request, or "
+        "informational signal contained in the email in 1-2 sentences. "
+        "Do NOT include prior email context, rolling summary information, "
+        "opinions, recommendations, explanations, or reasoning. "
+        "Do NOT mention that this is an email. "
+        "The summary should be written in a neutral, declarative tone and "
+        "should be suitable for semantic embedding and similarity comparison. "
+        "Focus on what happened, what was communicated, or what is being requested."
+    ),
+        )
+
 
     explanation: str = Field(
         ...,

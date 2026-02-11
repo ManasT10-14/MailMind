@@ -1,0 +1,4 @@
+wire the parent graph then come back to the defer agent's call_router node and finish it by calling the parent node that has the execution of the router note
+
+
+wiring of defer agent remains, can be done easily
