@@ -43,7 +43,7 @@ def create_watch(state: DeferState)-> Command[Literal[END]]:
         key=result["watch_id"],
         value=result
     )
-    return Command(goto=END,update={})
+    return Command(goto=END,update={"run_router":False})
 
 def filter_watches(state:DeferState) -> Command[Literal["check_state"]]:
     email:EmailObject = state["email"]
@@ -59,7 +59,7 @@ def filter_watches(state:DeferState) -> Command[Literal["check_state"]]:
             active_watches.append(watch)
             
     if len(active_watches) == 0:
-        return Command(goto="check_state", update={"relevant_watches": []})
+        return Command(goto=END, update={"relevant_watches": []})
 
     
     relevant_watches = []
@@ -105,8 +105,6 @@ def check_state(state: DeferState):
                         watch.value["status"] = "escalated"
                     store.put(NAMESPACE_WATCHES,key=watch_decision.watch_id,value = watch.value)
 
-    if result.context_summary:
-        return Command(goto="call_router",update={"router_summary":result.context_summary})
-    return Command(goto=END)
-def call_router(state: DeferState):
-    pass
+    # if result.context_summary:
+    #     return Command(goto="call_router")
+    return Command(goto=END,update={"router_summary":result.context_summary,"run_router":True})

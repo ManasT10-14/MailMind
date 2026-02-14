@@ -26,3 +26,4 @@ def get_gmail_service():
 
     service = build("gmail", "v1", credentials=creds)
     return service
+

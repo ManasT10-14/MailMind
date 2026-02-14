@@ -8,6 +8,7 @@ class DeferState(TypedDict):
     email: EmailObject
     email_action_details: RouterSchema
     relevant_watches: List[Any]
+    run_router: bool
     router_summary: List[str]
     cache: Any
     llm: Any
