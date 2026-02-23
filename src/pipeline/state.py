@@ -27,3 +27,8 @@ class ParentState(TypedDict):
     defer_email: EmailObject
     
     defer_context: List[str]
+    
+    #HITL
+    hitl_queue: List[str]  # message_ids requiring approval
+    hitl_index: int
+    approved_actions: Dict[str, bool]

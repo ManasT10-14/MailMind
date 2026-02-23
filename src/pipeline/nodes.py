@@ -1,4 +1,4 @@
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph,END
 from src.pipeline.state import ParentState
 from src.ingestion.pipeline import read_emails_in_date_range
 from src.schema.email_object import EmailObject
@@ -247,6 +247,21 @@ def add_to_calendar(state:ParentState):
 def post_dispatcher_node(state:ParentState):
     drafts = state.get("drafts",{})
     calendar_events = state.get("calendar_events",{})
+    emails = state["emails"]
+    has_drafts = len(drafts) > 0
+    has_calendar_events = len(calendar_events) > 0
     
-    num_drafts = len(drafts)
-    num_calendar_events = len(calendar_events)
+    draft_email_ids = list(drafts.keys())
+    calendar_email_ids = list(calendar_events.keys())
+    hitl_queue: List[str] = []
+    if has_drafts or has_calendar_events:
+        for email in emails:
+            if (email.message_id in draft_email_ids) or (email.message_id in calendar_email_ids):
+                hitl_queue.append(email.message_id)
+        
+        return Command(goto="hitl_review",update={"hitl_queue":hitl_queue,"hitl_index":0})
+    
+    return Command(goto=END)
+
+def hitl_review(state: ParentState):
+    pass
