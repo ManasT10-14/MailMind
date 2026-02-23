@@ -17,10 +17,17 @@ from src.utils.build_defer_init_state import (
 from src.agents.summarizer.graph import build_graph as build_summarizer
 from src.utils.build_summarizer_init_state import build_initial_state as build_summarizer_init_state
 
+from src.agents.draft_reply.graph import build_graph as build_draft_reply
+from src.utils.build_draft_reply_init_state import build_initial_state as build_draft_reply_init_state
+
+from src.agents.calendar.graph import build_graph as build_calendar
+from src.utils.build_calendar_init_state import build_initial_state as build_calendar_init_state
+
 router_agent = build_router()
 defer_agent = build_defer()
 summarizer_agent = build_summarizer()
-
+draft_agent = build_draft_reply()
+calendar_agent = build_calendar()
 
 def fetch_emails(state: ParentState):
     start_date = state["start_date"]
@@ -207,3 +214,39 @@ def summarizer_worker(state: ParentState):
     summary = {email.message_id:summarizer_result["summary"]}
     
     return {"summaries":summary}
+
+def draft_reply(state: ParentState):
+    email:EmailObject = state["email"]
+    cache = state["cache"]
+    llm = state["llm"]
+    provider = state["provider"]
+    context_summary = state["context_summary"]
+    
+    init_state = build_draft_reply_init_state(cache=cache,llm=llm,provider=provider,email=email,context_summary=context_summary)
+    draft_result = draft_agent.invoke(init_state)
+    
+    draft = {email.message_id:draft_result["reply"]}
+    
+    return {"drafts":draft}
+    
+def add_to_calendar(state:ParentState):
+    email:EmailObject = state["email"]
+    cache = state["cache"]
+    llm = state["llm"]
+    provider = state["provider"]
+
+    
+    init_state = build_calendar_init_state(cache=cache,llm=llm,provider=provider,email=email)
+    calendar_result = calendar_agent.invoke(init_state)
+    
+    events = {email.message_id:calendar_result["event_details"]}
+    
+    return {"calendar_events":events}
+
+
+def post_dispatcher_node(state:ParentState):
+    drafts = state.get("drafts",{})
+    calendar_events = state.get("calendar_events",{})
+    
+    num_drafts = len(drafts)
+    num_calendar_events = len(calendar_events)
