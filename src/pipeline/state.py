@@ -1,10 +1,18 @@
-from typing import List,Any,Dict,TypedDict,Annotated
+from typing import List,Any,Dict,TypedDict,Annotated,Optional,Literal
 from src.schema.email_object import EmailObject
 from src.schema.router_schema import RouterSchema
 from src.schema.summarizer_schema import SummarizerSchema
 from src.schema.draft_reply_schema import DraftReplySchema
 from src.schema.calendar_event_schema import CalendarEventSchema
 from operator import or_
+from pydantic import BaseModel
+
+class UserDecision(BaseModel):
+    message_id: str
+    approved: bool
+    type: Literal["draft", "calendar_event"]
+    edited_draft: Optional[DraftReplySchema]
+    edited_calendar_event: Optional[CalendarEventSchema]
 
 class ParentState(TypedDict):
     emails: List[EmailObject]
@@ -32,3 +40,6 @@ class ParentState(TypedDict):
     hitl_queue: List[str]  # message_ids requiring approval
     hitl_index: int
     approved_actions: Dict[str, bool]
+    hitl_payload: Dict[str,Any]
+    status: str
+    user_decision: Optional[UserDecision]

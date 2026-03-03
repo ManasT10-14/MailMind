@@ -3,7 +3,7 @@ from src.pipeline.state import ParentState
 from src.ingestion.pipeline import read_emails_in_date_range
 from src.schema.email_object import EmailObject
 from src.agents.router.graph import build_graph as build_router
-from typing import List
+from typing import List,Annotated,Literal
 from src.utils.build_router_init_state import (
     build_initial_state as build_router_init_state,
 )
@@ -28,6 +28,12 @@ defer_agent = build_defer()
 summarizer_agent = build_summarizer()
 draft_agent = build_draft_reply()
 calendar_agent = build_calendar()
+
+
+def entry_pipeline(state:ParentState) -> Command[Literal["fetch_emails","process_user_decesion"]]:
+    if state.get("user_decision") is not None:
+        return Command(goto="process_user_decesion")
+    return Command(goto="fetch_emails")
 
 def fetch_emails(state: ParentState):
     start_date = state["start_date"]
@@ -69,7 +75,7 @@ def init_defer_loop(state: ParentState):
     return {"current_index": 0}
 
 
-def run_router_defer(state: ParentState):
+def run_router_defer(state: ParentState) -> Command[Literal["process_defer"]]:
 
     llm = state["llm"]
     cache = state["cache"]
@@ -107,13 +113,13 @@ def run_router_defer(state: ParentState):
     )
 
 
-def process_defer(state: ParentState):
+def process_defer(state: ParentState) -> Command[Literal["dispatcher","process_defer","run_router_defer"]]:
     total_emails = len(state["emails"])
     current_index = state["current_index"]
     if (
         current_index >= total_emails
     ):  # because index starts from 0 so if it is equal to total_emails it means we have exceeded the total emails range so we move to next step
-        return Command(goto="next_step")
+        return Command(goto="dispatcher")
     llm = state["llm"]
     cache = state["cache"]
     provider = state["provider"]
@@ -203,7 +209,7 @@ def dispatcher(state: ParentState):
 
 
 
-def summarizer_worker(state: ParentState):
+def summarize(state: ParentState):
     email:EmailObject = state["email"]
     cache = state["cache"]
     llm = state["llm"]
@@ -212,7 +218,7 @@ def summarizer_worker(state: ParentState):
     summarizer_result = summarizer_agent.invoke(init_state)
     
     summary = {email.message_id:summarizer_result["summary"]}
-    
+
     return {"summaries":summary}
 
 def draft_reply(state: ParentState):
@@ -244,7 +250,7 @@ def add_to_calendar(state:ParentState):
     return {"calendar_events":events}
 
 
-def post_dispatcher_node(state:ParentState):
+def post_dispatcher_node(state:ParentState) -> Command[Literal["hitl_review",END]]:
     drafts = state.get("drafts",{})
     calendar_events = state.get("calendar_events",{})
     emails = state["emails"]
@@ -263,5 +269,95 @@ def post_dispatcher_node(state:ParentState):
     
     return Command(goto=END)
 
-def hitl_review(state: ParentState):
-    pass
+def hitl_review(state: ParentState) -> Command[Literal["execute_actions","await_user_decesion"]]:
+    queue = state["hitl_queue"]
+    index = state["hitl_index"]
+    
+    if index >= len(queue):
+        return Command(goto="execute_actions")
+    
+    current_email_id = queue[index]
+    
+    return Command(goto="await_user_decesion",update={"current_hitl_email":current_email_id})
+
+
+def await_user_decesion(state:ParentState):
+    message_id = state["current_hitl_email"]
+    index = state["hitl_index"]
+    queue = state["hitl_queue"]
+
+    email_obj = next(
+        e for e in state["emails"]
+        if e.message_id == message_id
+    )
+
+    draft = state.get("drafts", {}).get(message_id)
+    calendar_event = state.get("calendar_events", {}).get(message_id)
+
+    payload = {
+        "message_id": message_id,
+        "original_email": email_obj,
+        "position": {
+            "current": index + 1,
+            "total": len(queue)
+        }
+    }
+
+    if draft is not None:
+        payload["draft"] = draft
+        payload["type"] = "draft"
+    else:
+        payload["calendar_event"] = calendar_event
+        payload["type"] = "calendar_event"
+    return {
+        "status": "WAITING_FOR_USER",
+        "hitl_payload": payload
+    }
+    
+def process_user_decision(state: ParentState) -> Command[Literal["hitl_review"]]:
+
+    decision = state["user_decision"]
+    message_id = decision["message_id"]
+
+    drafts = dict(state.get("drafts", {}))
+    calendar_events = dict(state.get("calendar_events", {}))
+    approved_actions = dict(state.get("approved_actions", {}))
+
+    if decision["approved"]:
+        if decision["type"] == "draft":
+            if decision.get("edited_draft"):
+                drafts[message_id] = decision["edited_draft"]
+
+        elif decision["type"] == "calendar_event":
+            if decision.get("edited_calendar_event"):
+                calendar_events[message_id] = decision["edited_calendar_event"]
+
+    approved_actions[message_id] = decision["approved"]
+
+    return Command(
+        goto="hitl_review",
+        update={
+            "drafts": drafts,
+            "calendar_events": calendar_events,
+            "approved_actions": approved_actions,
+            "hitl_index": state["hitl_index"] + 1,
+            "user_decision": None,
+        }
+    )
+def execute_actions(state: ParentState) -> Command[Literal[[END]]]:
+
+    approved = state.get("approved_actions", {})
+
+    for message_id, decision in approved.items():
+
+        if not decision["approved"]:
+            continue
+
+        if message_id in state.get("drafts", {}):
+            pass
+
+        if message_id in state.get("calendar_events", {}):
+
+            pass
+
+    return Command(goto=END)
