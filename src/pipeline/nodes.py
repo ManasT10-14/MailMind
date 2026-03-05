@@ -30,9 +30,9 @@ draft_agent = build_draft_reply()
 calendar_agent = build_calendar()
 
 
-def entry_pipeline(state:ParentState) -> Command[Literal["fetch_emails","process_user_decesion"]]:
+def entry_pipeline(state:ParentState) -> Command[Literal["fetch_emails","process_user_decision"]]:
     if state.get("user_decision") is not None:
-        return Command(goto="process_user_decesion")
+        return Command(goto="process_user_decision")
     return Command(goto="fetch_emails")
 
 def fetch_emails(state: ParentState):
@@ -42,8 +42,9 @@ def fetch_emails(state: ParentState):
         start_date=start_date, end_date=end_date
     )
     emails = sorted(emails, key=lambda email: email.metadata.internal_timestamp)
-
-    return {"emails": emails, "current_index": 0, "actions": {}}
+    trace = state.get("trace", [])
+    trace.append(f"Fetched {len(emails)} emails")
+    return {"emails": emails, "current_index": 0, "actions": {},"trace":trace}
 
 
 def run_router_batch(state: ParentState):
@@ -68,7 +69,9 @@ def run_router_batch(state: ParentState):
 
     router_result: dict = router_agent.invoke(router_init_state)
 
-    return {"actions": router_result["actions"]}
+    trace = state.get("trace", [])
+    trace.append("Router processed batch")
+    return {"actions": router_result["actions"],"trace":trace}
 
 
 def init_defer_loop(state: ParentState):
@@ -116,6 +119,8 @@ def run_router_defer(state: ParentState) -> Command[Literal["process_defer"]]:
 def process_defer(state: ParentState) -> Command[Literal["dispatcher","process_defer","run_router_defer"]]:
     total_emails = len(state["emails"])
     current_index = state["current_index"]
+    trace = state.get("trace", [])
+    trace.append(f"Defer checking email {email.message_id}")
     if (
         current_index >= total_emails
     ):  # because index starts from 0 so if it is equal to total_emails it means we have exceeded the total emails range so we move to next step
@@ -145,10 +150,10 @@ def process_defer(state: ParentState) -> Command[Literal["dispatcher","process_d
     if defer_result["run_router"]:
         return Command(
             goto="run_router_defer",
-            update={"defer_context": defer_result["router_summary"]},
+            update={"defer_context": defer_result["router_summary"],"trace":trace},
         )
 
-    return Command(goto="process_defer", update={"current_index": current_index + 1})
+    return Command(goto="process_defer", update={"current_index": current_index + 1,"trace":trace})
 
 
 def dispatcher(state: ParentState):
@@ -180,8 +185,9 @@ def dispatcher(state: ParentState):
 
         elif action_obj.action == "SUMMARIZE":
             workers.append(
+                
                 Send(
-                    "summarize",
+                    "summarizer",
                     {
                         "email": email,
                         "cache": cache,
@@ -204,7 +210,8 @@ def dispatcher(state: ParentState):
                     },
                 )
             )
-
+    trace = state.get("trace", [])
+    trace.append(f"Dispatcher created {len(workers)} workers")
     return workers
 
 
@@ -269,7 +276,7 @@ def post_dispatcher_node(state:ParentState) -> Command[Literal["hitl_review",END
     
     return Command(goto=END)
 
-def hitl_review(state: ParentState) -> Command[Literal["execute_actions","await_user_decesion"]]:
+def hitl_review(state: ParentState) -> Command[Literal["execute_actions","await_user_decision"]]:
     queue = state["hitl_queue"]
     index = state["hitl_index"]
     
@@ -277,11 +284,12 @@ def hitl_review(state: ParentState) -> Command[Literal["execute_actions","await_
         return Command(goto="execute_actions")
     
     current_email_id = queue[index]
-    
-    return Command(goto="await_user_decesion",update={"current_hitl_email":current_email_id})
+    trace = state.get("trace", [])
+    trace.append(f"HITL required for email {current_email_id}")
+    return Command(goto="await_user_decision",update={"current_hitl_email":current_email_id,"trace":trace})
 
 
-def await_user_decesion(state:ParentState):
+def await_user_decision(state:ParentState):
     message_id = state["current_hitl_email"]
     index = state["hitl_index"]
     queue = state["hitl_queue"]
@@ -344,7 +352,7 @@ def process_user_decision(state: ParentState) -> Command[Literal["hitl_review"]]
             "user_decision": None,
         }
     )
-def execute_actions(state: ParentState) -> Command[Literal[[END]]]:
+def execute_actions(state: ParentState) -> Command[Literal[END]]:
 
     approved = state.get("approved_actions", {})
 
@@ -359,5 +367,9 @@ def execute_actions(state: ParentState) -> Command[Literal[[END]]]:
         if message_id in state.get("calendar_events", {}):
 
             pass
+        
+    
+    trace = state.get("trace", [])    
+    trace.append(f"Executed approved actions")
 
-    return Command(goto=END)
+    return Command(goto=END,update={"trace":trace})

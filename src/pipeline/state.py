@@ -43,3 +43,6 @@ class ParentState(TypedDict):
     hitl_payload: Dict[str,Any]
     status: str
     user_decision: Optional[UserDecision]
+    
+    
+    trace: List[str]

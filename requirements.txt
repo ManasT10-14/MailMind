@@ -8,3 +8,5 @@ langchain_google_genai
 langchain_anthropic
 anthropic
 google
+fastapi
+uvicorn
